@@ -6,6 +6,8 @@ import {
   deleteProduct,
   getTotalStockValue,
 } from "../../services/allApis";
+import { toast } from "react-toastify"; // ✅ Import toast
+
 
 const initialForm = {
   productName: "",
@@ -35,7 +37,7 @@ const ProductInventory = () => {
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      alert("Failed to fetch products");
+      toast.error("❌ Failed to fetch products");
     }
   };
 
@@ -46,6 +48,7 @@ const ProductInventory = () => {
       setTotalValue(res?.data?.totalStockValue || 0);
     } catch (err) {
       console.error(err);
+      toast.error("❌ Failed to fetch total stock value");
     }
   };
 
@@ -58,11 +61,16 @@ const ProductInventory = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.productName || !formData.price || !formData.quantity)
-      return alert("Please fill all fields");
+      return toast.error("❌ Please fill all fields");
 
     try {
-      if (editId) await updateProduct(editId, formData);
-      else await createProduct(formData);
+      if (editId) {
+        await updateProduct(editId, formData);
+        toast.success("✅ Product updated successfully!");
+      } else {
+        await createProduct(formData);
+        toast.success("🎉 Product added successfully!");
+      }
 
       setFormData(initialForm);
       setEditId(null);
@@ -70,7 +78,7 @@ const ProductInventory = () => {
       fetchTotalValue();
     } catch (err) {
       console.error(err);
-      alert("Failed to save product");
+      toast.error("❌ Failed to save product");
     }
   };
 
@@ -88,9 +96,15 @@ const ProductInventory = () => {
   // ✅ Delete product
   const handleDelete = async (id) => {
     if (window.confirm("Delete this product?")) {
-      await deleteProduct(id);
-      fetchProducts();
-      fetchTotalValue();
+      try {
+        await deleteProduct(id);
+        toast.success("🗑️ Product deleted successfully!");
+        fetchProducts();
+        fetchTotalValue();
+      } catch (err) {
+        console.error(err);
+        toast.error("❌ Failed to delete product");
+      }
     }
   };
 
@@ -146,9 +160,7 @@ const ProductInventory = () => {
         {["productName", "price", "quantity", "category"].map((field) => (
           <input
             key={field}
-            type={
-              field === "price" || field === "quantity" ? "number" : "text"
-            }
+            type={field === "price" || field === "quantity" ? "number" : "text"}
             placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
             value={formData[field]}
             onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
@@ -217,6 +229,7 @@ const ProductInventory = () => {
           </tbody>
         </table>
       </div>
+
     </div>
   );
 };

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createTask, getTasks, updateTask, deleteTask } from "../../services/allApis";
+import { toast } from "react-toastify"; // ✅ Import Toastify
+
 
 const initialForm = {
   title: "",
@@ -15,36 +17,67 @@ const TaskTracker = () => {
   const [filter, setFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
 
+  // ✅ Fetch tasks
   const fetchTasks = async () => {
-    const res = await getTasks();
-    setTasks(res.data.tasks || []);
+    try {
+      const res = await getTasks();
+      setTasks(res.data.tasks || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Failed to fetch tasks");
+    }
   };
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
+  // ✅ Submit / Update Task
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editId) await updateTask(editId, formData);
-    else await createTask(formData);
-    setFormData(initialForm);
-    setEditId(null);
-    fetchTasks();
+    if (!formData.title || !formData.description) {
+      return toast.error("⚠️ Please fill all fields");
+    }
+
+    try {
+      if (editId) {
+        await updateTask(editId, formData);
+        toast.success("✅ Task updated successfully!");
+      } else {
+        await createTask(formData);
+        toast.success("🎉 Task added successfully!");
+      }
+
+      setFormData(initialForm);
+      setEditId(null);
+      fetchTasks();
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Failed to save task");
+    }
   };
 
+  // ✅ Edit task
   const handleEdit = (task) => {
     setEditId(task._id);
     setFormData(task);
   };
 
+  // ✅ Delete task
   const handleDelete = async (id) => {
     if (window.confirm("Delete this task?")) {
-      await deleteTask(id);
-      fetchTasks();
+      try {
+        await deleteTask(id);
+        toast.success("🗑️ Task deleted successfully!");
+        fetchTasks();
+      } catch (err) {
+        console.error(err);
+        toast.error("❌ Failed to delete task");
+      }
     }
   };
 
+  // ✅ Filtering logic
   const filteredTasks = tasks.filter((task) => {
     const statusMatch = filter === "All" || task.status === filter;
     const priorityMatch = priorityFilter === "All" || task.priority === priorityFilter;
@@ -57,20 +90,28 @@ const TaskTracker = () => {
 
   const getColor = (status) => {
     switch (status) {
-      case "Done": return "text-green-600 font-semibold";
-      case "In Progress": return "text-yellow-600 font-semibold";
-      default: return "text-red-600 font-semibold";
+      case "Done":
+        return "text-green-600 font-semibold";
+      case "In Progress":
+        return "text-yellow-600 font-semibold";
+      default:
+        return "text-red-600 font-semibold";
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-center mb-6"> Task Tracker App</h1>
+      <h1 className="text-2xl font-bold text-center mb-6">🗂️ Task Tracker App</h1>
 
-      <div className="flex justify-between mb-4">
+      {/* 🔽 Filters */}
+      <div className="flex justify-between mb-4 flex-wrap gap-4">
         <div>
           <label className="mr-2 font-semibold">Filter by Status:</label>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="border p-2 rounded-lg">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="border p-2 rounded-lg"
+          >
             <option>All</option>
             <option>Pending</option>
             <option>In Progress</option>
@@ -79,7 +120,11 @@ const TaskTracker = () => {
         </div>
         <div>
           <label className="mr-2 font-semibold">Filter by Priority:</label>
-          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border p-2 rounded-lg">
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="border p-2 rounded-lg"
+          >
             <option>All</option>
             <option>Low</option>
             <option>Medium</option>
@@ -88,6 +133,7 @@ const TaskTracker = () => {
         </div>
       </div>
 
+      {/* 🧾 Task Form */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         {["title", "description"].map((field) => (
           <input
@@ -128,10 +174,12 @@ const TaskTracker = () => {
         </button>
       </form>
 
+      {/* 📊 Summary */}
       <p className="mb-4 font-semibold">
-         Total Tasks: {total} |  Done: {done} |  Completion: {completion}%
+        Total Tasks: {total} | Done: {done} | Completion: {completion}%
       </p>
 
+      {/* 📋 Task Table */}
       <table className="w-full border border-gray-300 text-center">
         <thead className="bg-gray-200">
           <tr>
@@ -165,8 +213,17 @@ const TaskTracker = () => {
               </td>
             </tr>
           ))}
+          {filteredTasks.length === 0 && (
+            <tr>
+              <td colSpan="5" className="p-4 text-gray-500">
+                No tasks found
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
+
+ 
     </div>
   );
 };
