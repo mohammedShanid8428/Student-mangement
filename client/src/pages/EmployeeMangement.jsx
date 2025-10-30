@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createEmployee, getAllEmployees, updateEmployee, deleteEmployee } from "../../services/allApis";
+import { toast } from "react-toastify"; 
+
 
 const initialForm = {
   name: "",
@@ -23,7 +25,7 @@ const EmployeeManagement = () => {
       setEmployees(res.data.employees || []);
     } catch (err) {
       console.error(err);
-      alert("Failed to fetch employees");
+      toast.error("❌ Failed to fetch employees");
     }
   };
 
@@ -47,15 +49,20 @@ const EmployeeManagement = () => {
     if (!validateForm()) return;
 
     try {
-      if (editId) await updateEmployee(editId, formData);
-      else await createEmployee(formData);
+      if (editId) {
+        await updateEmployee(editId, formData);
+        toast.success("✅ Employee updated successfully!");
+      } else {
+        await createEmployee(formData);
+        toast.success("🎉 Employee added successfully!");
+      }
 
       setFormData(initialForm);
       setEditId(null);
       fetchAll();
     } catch (err) {
       console.error(err);
-      alert("Failed to save employee");
+      toast.error("❌ Failed to save employee");
     }
   };
 
@@ -72,8 +79,14 @@ const EmployeeManagement = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure to delete this employee?")) {
-      await deleteEmployee(id);
-      fetchAll();
+      try {
+        await deleteEmployee(id);
+        toast.success("🗑️ Employee deleted successfully!");
+        fetchAll();
+      } catch (err) {
+        console.error(err);
+        toast.error("❌ Failed to delete employee");
+      }
     }
   };
 
@@ -164,6 +177,8 @@ const EmployeeManagement = () => {
             ))}
         </tbody>
       </table>
+
+ 
     </div>
   );
 };

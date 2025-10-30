@@ -6,6 +6,8 @@ import {
   deleteExpense,
   getTotalExpenses,
 } from "../../services/allApis";
+import { toast } from "react-toastify"; // ✅ Import toast
+
 
 const initialForm = {
   title: "",
@@ -21,25 +23,22 @@ const ExpenseTracker = () => {
   const [filters, setFilters] = useState({ category: "", from: "", to: "" });
   const [total, setTotal] = useState(0);
 
-s
-const fetchExpenses = async () => {
-  try {
-    const query = [];
-    if (filters.category) query.push(`category=${filters.category}`);
-    if (filters.from && filters.to)
-      query.push(`from=${filters.from}&to=${filters.to}`);
+  // ✅ Fetch expenses with filters
+  const fetchExpenses = async () => {
+    try {
+      const query = [];
+      if (filters.category) query.push(`category=${filters.category}`);
+      if (filters.from && filters.to)
+        query.push(`from=${filters.from}&to=${filters.to}`);
 
-    const res = await getAllExpenses(query.length ? `?${query.join("&")}` : "");
-   
-    const data = res?.data?.expenses || res?.data || [];
-    setExpenses(Array.isArray(data) ? data : []);
-
-  } catch (err) {
-    console.error(err);
-    alert("Failed to fetch expenses");
-  }
-};
-
+      const res = await getAllExpenses(query.length ? `?${query.join("&")}` : "");
+      const data = res?.data?.expenses || res?.data || [];
+      setExpenses(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Failed to fetch expenses");
+    }
+  };
 
   // ✅ Fetch total expenses
   const fetchTotal = async () => {
@@ -48,6 +47,7 @@ const fetchExpenses = async () => {
       setTotal(res.data.total);
     } catch (err) {
       console.error(err);
+      toast.error("❌ Failed to fetch total expenses");
     }
   };
 
@@ -59,11 +59,16 @@ const fetchExpenses = async () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.amount || !formData.category)
-      return alert("Please fill all fields");
+      return toast.error("❌ Please fill all fields");
 
     try {
-      if (editId) await updateExpense(editId, formData);
-      else await createExpense(formData);
+      if (editId) {
+        await updateExpense(editId, formData);
+        toast.success("✅ Expense updated successfully!");
+      } else {
+        await createExpense(formData);
+        toast.success("🎉 Expense added successfully!");
+      }
 
       setFormData(initialForm);
       setEditId(null);
@@ -71,7 +76,7 @@ const fetchExpenses = async () => {
       fetchTotal();
     } catch (err) {
       console.error(err);
-      alert("Failed to save expense");
+      toast.error("❌ Failed to save expense");
     }
   };
 
@@ -87,9 +92,15 @@ const fetchExpenses = async () => {
 
   const handleDelete = async (id) => {
     if (window.confirm("Delete this expense?")) {
-      await deleteExpense(id);
-      fetchExpenses();
-      fetchTotal();
+      try {
+        await deleteExpense(id);
+        toast.success("🗑️ Expense deleted successfully!");
+        fetchExpenses();
+        fetchTotal();
+      } catch (err) {
+        console.error(err);
+        toast.error("❌ Failed to delete expense");
+      }
     }
   };
 
@@ -201,6 +212,8 @@ const fetchExpenses = async () => {
           </tbody>
         </table>
       </div>
+
+ 
     </div>
   );
 };
